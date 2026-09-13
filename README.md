@@ -1,222 +1,55 @@
-# Rules Engine Template
+# Rules Engine Template — retired
 
-A reusable starter for deterministic, source-backed tabletop rules engines.
+**This repository is archived and should not be used.** It was the third iteration of an
+attempt to make deterministic, source-backed rules engines reproducible. The fourth
+iteration replaced it, and is where the work continues.
 
-The template provides:
+| Use this instead | For |
+|---|---|
+| [`rules-kernel`](https://github.com/brandonifco/rules-kernel) | The ruleset-agnostic foundation an engine references: replay identity, provenance, and the unresolved-result contract. Published to nuget.org, `net8.0;net10.0`. |
+| [`rules-factory`](https://github.com/brandonifco/rules-factory) | The method for turning a written ruleset into an engine, and the corpus map that method produces. |
 
-- a deterministic .NET 10 Core project;
-- replay-compatibility and random-source primitives;
-- test infrastructure;
-- exact SDK pinning;
-- authoritative-source provenance and hash verification;
-- bounded PDF source extraction;
-- configurable rules-surface detection;
-- repository invariant checks;
-- local/CI validation parity;
-- pull-request policy and rules-conformance gates.
+## Why it was retired
 
-The template intentionally starts with no authoritative rules corpus configured. A new project declares its own sources and rules surfaces after initialization.
+Not because it was broken — though it was, in ways recorded in its closed issues. Because it
+was **the wrong kind of artifact**.
 
-## Create a new rules engine
+It tried to be two things at once: the product skeleton an engine starts from, *and* the
+thing that produces engines. Because both lived in one repository, its tooling could not
+tell which role it was serving. Four of its eight invariant checks examined files that only
+exist in a produced engine, found nothing, and reported `ok` — a gate reporting PASS while
+proving nothing, in a repository whose central claim was that prose does not fail a build
+but checks do.
 
-On GitHub, open `brandonifco/rules-engine-template` and choose **Use this template**.
+The deeper problem was the model. A template is copied and then diverges. Two engines built
+this way each grew their own random source, their own replay identity, their own scripted
+test double; the second corrected mistakes in the first; and because each owned its copy,
+none of those corrections could reach the other. A copied foundation cannot be fixed once.
 
-Clone the new repository and enter it:
+The kernel is referenced, not copied. Both engines now depend on it.
 
-```bash
-git clone https://github.com/OWNER/REPOSITORY.git
-cd REPOSITORY
-```
+## What it got right, and what carried forward
 
-Install the repository-pinned .NET SDK:
+The determinism discipline, the source-boundary handling, the single canonical gate, the
+decision-record culture, and the insistence that an invariant worth stating is worth a
+check — all of it survived, and most of it is stricter now. The kernel's checker has nine
+checks and 105 tests for the checks themselves, which is the part this repository never had.
 
-```bash
-./scripts/bootstrap-dotnet.sh
-```
+Its failures carried forward too, as lessons with names:
 
-Initialize the project identity:
+- A check that examines nothing must say so — and its **exit code** must say so, not just its
+  output.
+- A citation is a promise. This repository shipped 61 references to files that did not
+  exist, several inside runtime error messages handed to users.
+- Enforcement and the documents it cites ship together, or neither ships.
+- A test whose expectation is computed the same way as the thing it checks can only confirm
+  that the code does what it does.
 
-```bash
-PATH="$PWD/.dotnet:$PATH" ./scripts/init-rules-engine.py \
-  --project-id my-rules \
-  --project-name "My Rules Engine" \
-  --project-prefix MyRules \
-  --repo OWNER/REPOSITORY
-```
+## What is still here
 
-The initializer is intentionally single-use. It replaces the template identity, renames the Core and test projects, updates project references, writes `framework.json`, and refreshes dependency lock files.
+Everything, unchanged, at the commit it was archived on. The git history, the tooling, and
+twenty closed issues that each say where their subject went. Nothing was deleted, because
+the record of why a design was abandoned is worth more than the design.
 
-Arguments:
-
-- `--project-id`: lowercase machine identifier matching `[a-z][a-z0-9-]*`
-- `--project-name`: human-readable project name
-- `--project-prefix`: identifier-style .NET namespace/project prefix
-- `--repo`: GitHub repository in `OWNER/REPOSITORY` form
-
-## Verify the new repository
-
-Inspect the local development environment:
-
-```bash
-./scripts/doctor.sh
-```
-
-Run the canonical merge-equivalent validation gate:
-
-```bash
-./scripts/validate.sh full
-```
-
-For a faster inner loop:
-
-```bash
-./scripts/validate.sh fast
-```
-
-`validate.sh full` is the repository's single definition of an acceptable change. CI invokes the same gate rather than maintaining a separate build recipe.
-
-## Configure the authoritative rules corpus
-
-Source-backed rules work requires `.github/source-manifest.json`.
-
-Example for one rulebook:
-
-```json
-{
-  "schemaVersion": 1,
-  "sources": [
-    {
-      "sourceId": "core-rules",
-      "authority": 1,
-      "title": "Core Rules",
-      "edition": "Example Edition",
-      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-      "pdfPageCount": 300,
-      "pageNumbering": {
-        "printedPageEqualsPdfPageMinus": 12
-      },
-      "envVar": "CORE_RULES_PDF"
-    }
-  ]
-}
-```
-
-The committed manifest identifies the authoritative source but never contains the local PDF path.
-
-Configure your own local copy with either the manifest's environment variable:
-
-```bash
-export CORE_RULES_PDF=/absolute/path/to/core-rules.pdf
-```
-
-or a gitignored `source.local.json` in the primary checkout:
-
-```json
-{
-  "core-rules": "/absolute/path/to/core-rules.pdf"
-}
-```
-
-Then verify the configured file against the committed SHA-256:
-
-```bash
-tools/source-slice.py --source-id core-rules --verify-only
-```
-
-A hash mismatch is a hard failure. Do not change the manifest merely to make a different printing or scan pass.
-
-## Extract bounded source packets
-
-Use `tools/source-slice.py` to extract only the pages needed for the current rules task.
-
-By PDF page:
-
-```bash
-tools/source-slice.py \
-  --source-id core-rules \
-  --pages 45-48 \
-  --output /tmp/core-rules-45-48.txt
-```
-
-By printed page number:
-
-```bash
-tools/source-slice.py \
-  --source-id core-rules \
-  --printed-pages 33-36 \
-  --output /tmp/core-rules-33-36.txt
-```
-
-For tables, add `--layout`. Use `--expect REGEX` when a known heading or term must appear in the slice.
-
-Source packets are ephemeral review inputs. Do not commit extracted rulebook text or PDFs to the repository.
-
-If the manifest declares exactly one source, `--source-id` may be omitted. With multiple sources it is required.
-
-## Declare the rules surface
-
-The bare template has no project-specific rules surface.
-
-Create `.github/rules-surface-paths.txt` and list repository-relative paths whose changes require rules-conformance handling.
-
-Example:
-
-```text
-src/MyRules.Rules/
-src/MyRules.Data/
-tests/MyRules.Rules.Tests/
-```
-
-Rules:
-
-- one literal repository-relative path per line;
-- blank lines are ignored;
-- lines beginning with `#` are ignored;
-- a trailing `/` matches the directory and all descendants;
-- an entry without a trailing `/` matches one exact file;
-- globs and regular expressions are not supported;
-- `.github/source-manifest.json` is always part of the rules surface;
-- `packages.lock.json` is excluded from rules-surface classification.
-
-## Development workflow
-
-For each change:
-
-1. define scope and acceptance criteria in an Issue;
-2. extract only the authoritative pages needed for rules work;
-3. implement the smallest coherent change;
-4. add or update tests;
-5. run `./scripts/validate.sh full`;
-6. open a pull request using `.github/pull_request_template.md`;
-7. provide exact source locators for rules changes;
-8. record required conformance verdicts for rules-surface changes;
-9. merge only after repository gates are green.
-
-The pull-request template also requires determinism impact, known limitations, agent provenance, and explicit confirmation that unrelated changes are absent.
-
-## Determinism
-
-Treat changes to any of the following as compatibility-sensitive:
-
-- random-number consumption;
-- ordering;
-- serialization;
-- replay identity;
-- source-baseline identity;
-- state transitions.
-
-An apparently harmless extra random draw can change every later result. Preserve deterministic behavior deliberately and test it directly.
-
-## Source boundary
-
-The authoritative source files remain outside Git.
-
-The repository may contain source identity and metadata, hashes, page-count and page-number mapping, derived code and structured data, tests, citations, and provenance.
-
-The repository must not contain source PDFs, local absolute paths to those PDFs, committed source-extraction packets, or large copied sections of source text.
-
-## Updating the template
-
-Changes to the reusable framework should be made in `brandonifco/rules-engine-template`, validated there, and versioned deliberately.
-
-A consuming rules-engine repository should evolve independently after initialization rather than pulling arbitrary template changes into an active rules implementation.
+The `deckardII` repository that produced it, and the extraction pipeline inside it, are
+likewise intact.
