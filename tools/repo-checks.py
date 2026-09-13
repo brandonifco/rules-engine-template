@@ -118,13 +118,11 @@ LOCAL_PATH_LEAK = re.compile(r"(?:/home/|/Users/|/root/)[A-Za-z0-9_.\-]+/")
 # local path in an example, and the one with least reason to be exempt from that check.
 # Each entry below is exempt from exactly the one check it genuinely needs to be.
 PACKET_MARKER_EXEMPT = {
-    "bootstrap/config/rename-map.json", # stores literal transformation fixtures
     "tools/source-slice.py",            # emits the marker
     "tools/repo-checks.py",             # searches for the marker
     "tools/tests/test_repo_checks.py",  # asserts on the marker
 }
 LOCAL_PATH_EXEMPT = {
-    "bootstrap/config/rename-map.json", # stores literal transformation fixtures
     "tools/repo-checks.py",             # defines the pattern
     "tools/tests/test_repo_checks.py",  # builds fake paths as fixtures
 }

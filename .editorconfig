@@ -24,7 +24,7 @@ indent_size = 2
 indent_size = 4
 
 [*.cs]
-# Deckard treats build warnings as errors; these style rules are part of that gate.
+# This repository treats build warnings as errors; these style rules are part of that gate.
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 csharp_using_directive_placement = outside_namespace:warning

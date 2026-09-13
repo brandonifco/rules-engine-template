@@ -216,15 +216,6 @@ class SourceBoundaryTests(CheckTestCase):
         self.repo.write("tools/source-slice.py", 'DEFAULT = "' + "/home/" + 'x/b.pdf"\n')
         self.assertCaught(repo_checks.check_source_boundary(self.repo.root), "leaks a local")
 
-    def test_rename_map_may_store_literal_transformation_fixtures(self):
-        marker = "AUTHORITATIVE SOURCE" + " PACKET"
-        content = (
-            '{"fixture": "' + marker
-            + '", "path": "/home/example/source.pdf"}\n'
-        )
-        self.repo.write("bootstrap/config/rename-map.json", content)
-        self.assertEqual(repo_checks.check_source_boundary(self.repo.root), [])
-
     def test_rename_map_exemption_is_narrow(self):
         marker = "AUTHORITATIVE SOURCE" + " PACKET"
         content = (

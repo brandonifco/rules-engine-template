@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Repo-wide defaults. Deckard is a deterministic rules engine: reproducibility
+  <!-- Repo-wide defaults. This is a deterministic rules engine: reproducibility
        and zero-warning builds are load-bearing, not stylistic. See docs/architecture.md. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
